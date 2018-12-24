@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkers</title>
+
+<style>
+		.cell {
+			width: 12%;
+			height: 12%;
+			border: aliceblue;
+			border-style: solid;
+			border-width: thin;
+		}
+		.playablecell {
+		    background-color: #edf1f7;
+		}
+		.blockedcell {
+		    background-color: #5ea0a4;
+		}
+		.selection {
+			border-color: red !important;
+			border-width: thick;
+			border-style: solid;
+		}
+		.possibleMove {
+			border-color: green !important;
+			border-width: thick;
+			border-style: solid;
+		}
+		.status {
+		    text-align: center;
+		    color: red;
+		    background: cornsilk;
+		}
+		img {
+			width: 20%;
+			/*height: 70%;*/ 
+			/* margin: 12% */;
+			display: inline;
+			align: middle;
+		}
+		table {
+			width: 90%;
+			height: 90% !important;
+			margin: 1%;
+		}
+		tr, td {
+		    width: 12%;
+		    height: 12%;
+		}
+		td.div {
+		    width: 100%;
+		    height: 100%;
+		}
+		html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+</style>
+
+<script language="javascript" type="text/javascript">
+    var pos1 = {};
+    var pos2 = {};
+    var finalPos1 = {};
+    var finalPos2 = {};
+    var moves = {};
+    var visited = {};
+    var rows = 8;
+    var cols = 8;
+    var selected = ""
+    var player1 = "<div><img src=\"pawn1.png\" /></div>" ;
+    var player2 = "<div><img src=\"pawn2.png\" /></div>" ;
+
+    window.onload = function () {
+        init();
+
+        computePossibleMoves(pos1);
+        render();
+        document.getElementById('status').innerHTML = "Player1, Your turn..."
+    };
+
+    function makeSelection(id) {
+        if (isPlayer1Cell(id)) {
+            selected = id;
+            document.getElementById(id).classList.add('selection');
+            Object.keys(moves[id]).forEach(function(key){
+                document.getElementById(moves[id][key]).classList.add('possibleMove');
+            });
+        }
+    }
+
+    function isPlayer1Cell(id) {
+        var found = false;
+        Object.keys(pos1).forEach(function(key){
+            if (id == key) {
+               found = true;
+            }
+        });
+        return found;
+    }
+
+    function makeMove(id) {
+        if (!isValidMove(selected, id)) {
+            document.getElementById(selected).classList.remove('selection');
+            Object.keys(moves[selected]).forEach(function(key){
+                document.getElementById(moves[selected][key]).classList.remove('possibleMove');
+            });
+            selected = "";
+            return;
+        }
+
+        pos1[id] = 1 ;
+        pos1[selected] = 0;
+        selected = "";
+
+        render();
+        checkGameComplete(pos1, finalPos1, "Player1 Wins!");
+        // if true, end game. 
+        document.getElementById('status').innerHTML = "Player2, Your turn..."
+
+        playSecondPlayer();
+        checkGameComplete(pos2, finalPos2, "Player2 Wins!");
+        render();
+        computePossibleMoves(pos1);
+        document.getElementById('status').innerHTML = "Player1, Your turn..."
+    }
+
+    function playSecondPlayer() {
+        computePossibleMoves(pos2);
+      //  if (lowestFirstPlay()) {
+      //      return;
+      //  }
+        if (randomForwardPlay()) {
+            return;
+        }
+        randomPlay();
+    }
+
+    function lowestFirstPlay() {
+        var pos = [];
+        Object.keys(pos2).forEach(function(key) {
+            if (pos2[key] == 1) {
+                pos.push(key);
+            }
+        });
+        pos.sort();
+        pos.reverse();
+        var from = pos[0];
+
+        for (var i = 0 ; i < pos.length ; i ++ ) {
+            var from = pos[i];
+            if (moves[from].length == 0 ) {
+                continue;
+            }
+            moves[from].sort();
+            var to = moves[from][0];
+            pos2[to] = 1;
+            pos2[from] = 0;
+            return true;
+
+        }
+        return false;
+    }
+
+    function randomForwardPlay() {
+        var pos = [];
+        Object.keys(pos2).forEach(function(key) {
+            if (pos2[key] == 1) {
+                pos.push(key);
+            }
+        });
+        while(true) {
+            var from = pos[Math.floor(Math.random()*pos.length)];
+            if (moves[from].length == 0) {
+                continue;
+            }
+            var [fx, fy] = toCellCoordinates(from);
+            moves[from].sort();
+            var to = moves[from][0];
+            pos2[to] = 1;
+            pos2[from] = 0;
+            return true;
+        }
+    }
+
+    function randomPlay() {
+        var pos = [];
+        Object.keys(pos2).forEach(function(key) {
+            if (pos2[key] == 1) {
+                pos.push(key);
+            }
+        });
+        while(true) {
+            var from = pos[Math.floor(Math.random()*pos.length)];
+            if (moves[from].length == 0) {
+                continue;
+            }
+            var to = moves[from][Math.floor(Math.random() * moves[from].length)];
+            pos2[to] = 1;
+            pos2[from] = 0;
+            return;
+        }
+    }
+
+    function isValidMove(to, from) {
+        for (var i = 0 ; i < moves[to].length; i ++ ) {
+            if (moves[to][i] == from) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function checkGameComplete(cur, want, message) {
+        var finished = true;
+        Object.keys(want).forEach(function(key) {
+            if (cur[key] != 1) {
+                finished = false;
+            }
+        });
+        if (finished) {
+            alert(message);
+        }
+    }
+
+    function render() {
+        drawTable();
+        Object.keys(pos1).forEach(function(key) {
+            if (pos1[key] == 1 ) {
+                document.getElementById(key).innerHTML = player1;
+            }
+        });
+        Object.keys(pos2).forEach(function(key) {
+            if (pos2[key] == 1 ) {
+                document.getElementById(key).innerHTML = player2;
+            }
+        });
+    }
+
+    function onCellClick(id) {
+        if (selected == "") {
+            makeSelection(id);
+        } else {
+            makeMove(id);
+        }
+    }
+
+    function computePossibleMoves(pos) {
+        moves = {};
+        Object.keys(pos).forEach(function (key) {
+            if (pos[key] == 1) {
+                computeMoves(key);
+            }
+        });
+    }
+
+    function computeMoves(id) {
+        var [x, y] = toCellCoordinates(id);
+        moves[id] = [] ;
+        visited = {};
+        checkDirectionalMove(x, y, +1, +1);
+        checkDirectionalMove(x, y, +1, -1);
+        checkDirectionalMove(x, y, -1, +1);
+        checkDirectionalMove(x, y, -1, -1);
+    }
+
+    function checkDirectionalMove(x, y, dx, dy) {
+        var fx = x + dx;
+        var fy = y + dy;
+        var sx = fx + dx;
+        var sy = fy + dy;
+
+        if (!isValidCell(fx, fy)) {
+           return;
+        }
+        if (isCellEmpty(toCellId(fx, fy))) {
+            addPossibleMove(x, y, toCellId(fx, fy));
+            return;
+        }
+        if (isValidCell(sx, sy) && isCellEmpty(toCellId(sx, sy))) {
+            addPossibleMove(x, y, toCellId(sx, sy));
+            addPossibleJumps(x, y, sx, sy);
+        }
+        return;
+    }
+
+    function addPossibleJumps(i, j, x, y) {
+        checkDirectionalJump(i, j, x, y, +1, +1);
+        checkDirectionalJump(i, j, x, y, +1, -1);
+        checkDirectionalJump(i, j, x, y, -1, +1);
+        checkDirectionalJump(i, j, x, y, -1, -1);
+    }
+
+    function checkDirectionalJump(i, j, x, y, dx, dy) {
+        var fx = x + dx;
+        var fy = y + dy;
+        var sx = fx + dx;
+        var sy = fy + dy;
+
+        if (isValidCell(fx, fy) && !isCellEmpty(toCellId(fx, fy))
+             && isValidCell(sx, sy) && isCellEmpty(toCellId(sx, sy))
+             && visited[toCellId(sx, sy)] != 1) {
+             addPossibleMove(i, j, toCellId(sx, sy));
+             addPossibleJumps(i, j, sx, sy);
+        }
+    }
+
+    function addPossibleMove(x, y, id) {
+        visited[id] = 1;
+        moves[toCellId(x,y)].push(id);
+    }
+
+    function init() {
+        for (var j = 0 ; j < cols; j += 2 ) {
+            pos1[toCellId(0,j)] = 1;
+            pos2[toCellId(rows-2, j)] = 1;
+        }
+        for (var j = 1 ; j < cols; j += 2) {
+            pos1[toCellId(1,j)] = 1;
+            pos2[toCellId(rows-1, j)] = 1;
+        }
+        finalPos1 = Object.assign({}, pos2);
+        finalPos2 = Object.assign({}, pos1);
+
+        drawTable();
+    }
+
+    function drawTable() {
+        var table = "" ;
+        var playable = true;
+        for (var i = 0 ; i < rows; i ++ ) {
+            table += "<tr>";
+            for ( var j = 0 ; j < cols ; j ++ ) {
+                var id = toCellId(i, j);
+                table += "<td onclick=\"onCellClick('" + id + "')\" id=\"" + id + "\" class=\"cell " + (playable ? "playablecell" : "blockedcell") + "\"></td>" ;
+                playable = !playable;
+            }
+            playable = !playable;
+            table += "</tr>";
+        }
+        document.getElementById('board').innerHTML = table;
+    }
+
+    function toCellId(i, j) {
+        return i + "_" + j;
+    }
+
+    function toCellCoordinates(id) {
+        var arr = id.split('_');
+        return [ parseInt(arr[0]), parseInt(arr[1]) ];
+    }
+
+    function isValidCell(i, j) {
+        return i >= 0 && j >= 0 && i < rows && j < cols;
+    }
+
+    function isCellEmpty(id) {
+        return pos1[id] != 1 && pos2[id] != 1 ;
+    }
+
+</script>
+</head>
+<body>
+<br />
+<div id="status" class="status">Initializing...</div>
+<table id="board"></table>
+</body>
+
+</html>
